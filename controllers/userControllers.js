@@ -33,8 +33,24 @@ const registerUser = async (req, res) => {
 
         await newUser.save();
 
+        // Generate JWT token after registration
+        const token = jwt.sign(
+            { _id: newUser._id, email: newUser.email },
+            process.env.SECRET_KEY,
+            // { expiresIn: '7d' } // Optional: Set expiration time
+        );
+
         return res.status(201).json({
-            data: newUser,
+            data: {
+                user: {
+                    _id: newUser._id,
+                    name: newUser.name,
+                    email: newUser.email,
+                    role: newUser.role,
+                    status: newUser.status
+                },
+                token: token
+            },
             error: false,
             message: 'User registered successfully'
         });
@@ -119,6 +135,7 @@ const fetchUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                status: user.status
             },
             error: false,
             message: 'User fetched successfully'
