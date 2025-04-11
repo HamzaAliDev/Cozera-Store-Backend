@@ -69,8 +69,8 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("email", email);
-        console.log("password", password);
+        // console.log("email", email);
+        // console.log("password", password);
 
         if (!email || !password) {
             return res.status(400).json({
@@ -129,6 +129,15 @@ const fetchUser = async (req, res) => {
     try {
         const { _id } = req.user;
         const user = await User.findOne({ _id });
+
+        if (!user) {
+            return res.status(404).json({
+                data: null,
+                error: true,
+                message: 'User not found'
+            });
+        }
+
         return res.status(200).json({
             data: {
                 _id: user._id,
@@ -156,6 +165,15 @@ const updateProfile = async (req, res) => {
         const { _id } = req.user;
 
         const user = await User.findOneAndUpdate({ _id }, { name }, { new: true });
+
+        if (!user) {
+            return res.status(404).json({
+                data: null,
+                error: true,
+                message: 'User not found'
+            });
+        }
+
         res.status(200).json({
             data: {
                 _id: user._id,
