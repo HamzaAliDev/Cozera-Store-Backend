@@ -7,8 +7,9 @@ const fetchAllOrders = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const orders = await Order.find()
-            .populate('user', 'name email') // Make sure to use 'user' not 'userId'
-            .populate('orderItems.product', 'name price') // populate nested product
+            .populate('userId', 'name email') // Make sure to use 'user' not 'userId'
+            .populate('orderItems.productId', 'name price') // populate nested product
+            .populate('shippingAddress', 'firstName lastName country city address postalCode email phone')
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 }); // latest orders first
@@ -36,7 +37,10 @@ const fetchAllOrders = async (req, res) => {
 const fetchOrdersByUserId = async (req, res) => {
     const { userId } = req.params;
     try {
-        const orders = await Order.find({ userId }).populate('userId', 'name ').populate('productId', 'name');
+        const orders = await Order.find({ userId })
+            .populate('orderItems.productId', ' images')
+            .populate('shippingAddress', 'firstName lastName country city address postalCode email phone')
+            .sort({ createdAt: -1 }); // latest orders first
         if (!orders) {
             return res.status(404).json({
                 data: null,
@@ -44,8 +48,21 @@ const fetchOrdersByUserId = async (req, res) => {
                 message: 'No orders found for this user'
             });
         }
+
+        // 🛠 Manually replace images array with first image only
+        const updatedOrders = orders.map(order => {
+            order = order.toObject(); // convert Mongoose document to plain object
+            order.orderItems = order.orderItems.map(item => {
+                if (item.productId?.images && item.productId.images.length > 0) {
+                    item.productId.image = item.productId.images[0]; // create a new field 'image'
+                }
+                delete item.productId.images; // optional: remove the 'images' array
+                return item;
+            });
+            return order;
+        });
         res.status(200).json({
-            data: orders,
+            data: updatedOrders,
             error: false,
             message: 'Orders fetched successfully'
         });
@@ -84,16 +101,18 @@ const fetchOrderById = async (req, res) => {
 
 // create order
 const createOrder = async (req, res) => {
-    const { userId, orderItems, shippingAddress } = req.body;
+    const { orderItems, shippingAddress, totalPrice } = req.body;
+    const userId = req.user._id;
     try {
         const newOrder = new Order({
             userId,
             orderItems,
-            shippingAddress
+            shippingAddress,
+            totalPrice
         });
-        await newOrder.save();
+        const data = await newOrder.save();
         res.status(201).json({
-            data: newOrder,
+            data: data,
             error: false,
             message: 'Order created successfully'
         });
@@ -108,13 +127,11 @@ const createOrder = async (req, res) => {
 // update order by id
 const updateOrderById = async (req, res) => {
     const { orderId } = req.params;
-    const { userId, orderItems, shippingAddress, deliverAT } = req.body;
+    const { deliverAt, status } = req.body;
     try {
         const updatedOrder = await Order.findByIdAndUpdate(orderId, {
-            userId,
-            orderItems,
-            shippingAddress,
-            deliverAT
+            deliverAt,
+            status
         }, { new: true });
         if (!updatedOrder) {
             return res.status(404).json({

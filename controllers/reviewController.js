@@ -26,12 +26,12 @@ const fetchReviewsByProductId = async (req, res) => {
 
 // Add a new review
 const addReview = async (req, res) => {
-    const { productId, userId, name, rating, comment } = req.body;
+    const { orderId, productId, userId, rating, comment } = req.body;
     try {
         const newReview = new Review({
+            orderId,
             productId,
             userId,
-            name,
             rating,
             comment
         });
@@ -73,4 +73,4 @@ const deleteReview = async (req, res) => {
         });
     }
 }
-module.exports = { fetchReviewsByProductId , addReview, deleteReview };
+module.exports = { fetchReviewsByProductId, addReview, deleteReview };

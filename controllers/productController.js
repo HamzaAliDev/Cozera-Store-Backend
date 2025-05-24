@@ -26,8 +26,60 @@ const fetchProducts = async (req, res) => {
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 }) // newest first
-            .select("-description -variants -numReviews -sku")
+            .select("-description -variants -numReviews -sku -tags -createdAt -updatedAt ")
             .lean()
+
+        const total = await Product.countDocuments(filter);
+
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                data: null,
+                error: true,
+                message: 'No products found'
+            });
+        }
+
+        return res.status(200).json({
+            data: products,
+            total,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            error: false,
+            message: 'Products fetched successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            data: null,
+            error: error.message,
+            message: "Failed to fetch products"
+        });
+    }
+}
+const fetchCompleteProducts = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        // Calculate the number of products to skip
+        const skip = (page - 1) * limit;
+
+        const filter = {};
+
+        // Search by name (case-insensitive)
+        if (req.query.search) {
+            filter.name = { $regex: req.query.search, $options: 'i' };
+        }
+
+        // Filter by category
+        if (req.query.category) {
+            filter.category = req.query.category;
+        }
+
+
+        const products = await Product.find(filter)
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 }) // newest first
 
         const total = await Product.countDocuments(filter);
 
@@ -87,10 +139,10 @@ const fetchProductById = async (req, res) => {
 // add product
 const addProduct = async (req, res) => {
     try {
-        const { name, description, price, category, images, variants, sku } = req.body;
+        const { name, description, price, category, images, variants, sku, tags } = req.body;
 
         // Validate required fields
-        if (!name || !description || !price || !category || !images || !variants || !sku) {
+        if (!name || !description || !price || !category || images.length === 0 || variants.length === 0 || !sku || tags.length === 0) {
             return res.status(400).json({
                 data: null,
                 error: true,
@@ -106,9 +158,10 @@ const addProduct = async (req, res) => {
             images,
             variants,
             sku,
+            tags,
         });
 
-        console.log("product", product);
+        // console.log("product", product);
 
         const newlyAddProduct = await product.save();
 
@@ -130,10 +183,10 @@ const addProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, category, images, variants, sku } = req.body;
+        const { name, description, price, category, images, variants, sku, tags } = req.body;
 
         // Validate required fields
-        if (!name || !description || !price || !category || !images || !variants || !sku) {
+        if (!name || !description || !price || !category || images.length === 0 || variants.length === 0 || !sku || tags.length === 0) {
             return res.status(400).json({
                 data: null,
                 error: true,
@@ -149,6 +202,7 @@ const updateProduct = async (req, res) => {
             images,
             variants,
             sku,
+            tags,
         }, { new: true });
 
         if (!product) {
@@ -200,4 +254,71 @@ const deleteProduct = async (req, res) => {
         });
     }
 }
-module.exports = { fetchProducts, addProduct, fetchProductById, updateProduct, deleteProduct };
+
+// search products
+const searchProducts = async (req, res) => {
+    try {
+        const { search } = req.query;
+        const products = await Product.find({
+            tags: { $regex: search, $options: 'i' }
+        })
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                data: null,
+                error: true,
+                message: 'No products found'
+            });
+        }
+
+        return res.status(200).json({
+            data: products,
+            error: false,
+            message: 'Products fetched successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            data: null,
+            error: error.message,
+            message: "Failed to fetch products"
+        });
+    }
+}
+
+// search products by category
+const searchProductByCategory = async (req, res) => {
+    try {
+        const { category } = req.query;
+        const products = await Product.find({
+            category: { $regex: category, $options: 'i' }
+        })
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                data: null,
+                error: true,
+                message: 'No products found'
+            });
+        }
+
+        return res.status(200).json({
+            data: products,
+            error: false,
+            message: 'Products fetched successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            data: null,
+            error: error.message,
+            message: "Failed to fetch products"
+        });
+    }
+}
+module.exports = {
+    fetchProducts,
+    fetchCompleteProducts,
+    addProduct,
+    fetchProductById,
+    updateProduct,
+    deleteProduct,
+    searchProducts,
+    searchProductByCategory
+};

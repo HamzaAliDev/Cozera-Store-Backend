@@ -158,13 +158,42 @@ const fetchUser = async (req, res) => {
     }
 }
 
+// fetch all users
+const fetchAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+
+        if (!users) {
+            return res.status(404).json({
+                data: null,
+                error: true,
+                message: 'No users found'
+            });
+        }
+
+        return res.status(200).json({
+            data: users,
+            error: false,
+            message: 'Users fetched successfully'
+        });
+    } catch (error) {
+        return res.status(409).json({
+            data: null,
+            error: error.message,
+            message: "Failed to fetch users"
+        });
+    }
+}
+
 // update profile
 const updateProfile = async (req, res) => {
     try {
-        const { name } = req.body;
-        const { _id } = req.user;
-
-        const user = await User.findOneAndUpdate({ _id }, { name }, { new: true });
+        const { id, role } = req.body;
+        console.log("req.body",req.body)
+        console.log("id", id);
+        console.log("role", role);
+       
+        const user = await User.findOneAndUpdate({ _id: id }, { role }, { new: true });
 
         if (!user) {
             return res.status(404).json({
@@ -175,10 +204,8 @@ const updateProfile = async (req, res) => {
         }
 
         res.status(200).json({
-            data: {
-                _id: user._id,
-                name: user.name,
-            },
+            data: user,
+            error: false,
             message: "User updated successfully",
         });
     } catch (error) {
@@ -190,4 +217,4 @@ const updateProfile = async (req, res) => {
     }
 }
 
-module.exports = { registerUser, loginUser, fetchUser, updateProfile };
+module.exports = { registerUser, loginUser, fetchUser, fetchAllUsers, updateProfile };

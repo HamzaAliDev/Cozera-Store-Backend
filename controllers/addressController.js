@@ -1,8 +1,8 @@
-const address = require('../models/addressModal');
+const Address = require('../models/addressModal');
 
 const fetchAllAddress = async (req, res) => {
     try {
-        const data = await address.find();
+        const data = await Address.find();
         if (!data) {
             return res.status(404).json({
                 data: null,
@@ -25,7 +25,7 @@ const fetchAllAddress = async (req, res) => {
 
 // fetch address by userId
 const fetchAddressByUserId = async (req, res) => {
-    const { userId } = req.params;
+    const userId = req.user._id;
     try {
         if (!userId) {
             return res.status(400).json({
@@ -35,8 +35,8 @@ const fetchAddressByUserId = async (req, res) => {
             });
         }
 
-        const data = await address.find({ userId });
-        if (!data) {
+        const data = await Address.find({ userId });
+        if (!data || data.length === 0) {
             return res.status(404).json({
                 data: null,
                 error: true,
@@ -59,9 +59,11 @@ const fetchAddressByUserId = async (req, res) => {
 
 // add address
 const addAddress = async (req, res) => {
-    const { userId, firstName, LastName, country, city, address, postalCode, email, phone } = req.body;
+    const { firstName, lastName, country, city, address, postalCode, email, phone } = req.body;
+    const userId = req.user._id;
+
     try {
-        if (!userId || !firstName || !LastName || !country || !city || !address || !postalCode || !email || !phone) {
+        if (!userId || !firstName || !lastName || !country || !city || !address || !postalCode || !email || !phone) {
             return res.status(400).json({
                 data: null,
                 error: true,
@@ -69,10 +71,10 @@ const addAddress = async (req, res) => {
             });
         }
 
-        const newAddress = new address({
+        const newAddress = new Address({
             userId,
             firstName,
-            LastName,
+            lastName,
             country,
             city,
             address,
@@ -107,7 +109,7 @@ const deleteAddress = async (req, res) => {
             });
         }
 
-        const data = await address.findByIdAndDelete(id);
+        const data = await Address.findByIdAndDelete(id);
         if (!data) {
             return res.status(404).json({
                 data: null,
@@ -116,7 +118,7 @@ const deleteAddress = async (req, res) => {
             });
         }
         res.status(200).json({
-            data: data,
+            data: null,
             error: false,
             message: 'Address deleted successfully'
         });
@@ -141,7 +143,7 @@ const updateAddress = async (req, res) => {
             });
         }
 
-        const data = await address.findByIdAndUpdate(id, {
+        const data = await Address.findByIdAndUpdate(id, {
             userId,
             firstName,
             LastName,

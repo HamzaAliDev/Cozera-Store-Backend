@@ -12,7 +12,7 @@ const productSchema = new mongoose.Schema(
                 color: { type: String, required: true }, // Color variant
                 sizes: [
                     {
-                        size: { type: String, enum: ["XS", "S", "M", "L", "XL", "XXL"], required: true },
+                        size: { type: String, enum: ["S", "M", "L", "XL"], required: true },
                         stock: { type: Number, required: true, min: 0 },
                     },
                 ],
@@ -22,6 +22,7 @@ const productSchema = new mongoose.Schema(
         numReviews: { type: Number, default: 0 },
         isFeatured: { type: Boolean, default: false },
         sku: { type: String },
+        tags: [{ type: String }],
     },
     { timestamps: true }
 );
